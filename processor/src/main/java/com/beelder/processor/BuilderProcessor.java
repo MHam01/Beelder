@@ -3,6 +3,7 @@ package com.beelder.processor;
 import com.beelder.annotations.Buildable;
 import com.beelder.annotations.BuildingBlock;
 import com.beelder.processor.handler.BuildableHandler;
+import com.beelder.processor.handler.BuildingBlockHandler;
 import com.beelder.processor.handler.IAnnotationHandler;
 import com.google.auto.service.AutoService;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class BuilderProcessor extends AbstractProcessor {
 
     {
         handlers.add(new BuildableHandler());
+        handlers.add(new BuildingBlockHandler());
     }
 
     @Override
