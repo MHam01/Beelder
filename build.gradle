@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group 'org.beelder'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Google Auto-Service
+    annotationProcessor 'com.google.auto.service:auto-service:1.0-rc5'
+    compile 'com.google.auto.service:auto-service:1.0-rc5'
+
+    // Apache Commons
+    implementation 'org.apache.commons:commons-lang3:3.0'
+
+    // Logger config
+    implementation 'org.slf4j:slf4j-api:1.7.25'
+    implementation 'ch.qos.logback:logback-classic:0.9.26'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = group
+            artifactId = 'BeelderProcessor'
+            version = version
+
+            from components.java
+        }
+    }
+}
+
