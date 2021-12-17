@@ -11,7 +11,7 @@
   "createdBy": {
     "gradle": {
       "version": "6.3",
-      "buildId": "v7ffelzmwbew3ci7cwnp5bz2li"
+      "buildId": "wjcgykwybrdehhl2crallhqvke"
     }
   },
   "variants": [
@@ -44,11 +44,11 @@
         {
           "name": "processor-1.0-SNAPSHOT.jar",
           "url": "processor-1.0-SNAPSHOT.jar",
-          "size": 7061,
-          "sha512": "ab923e10a71231a3c987c5028320385d2578cfb045c00d482bed4ba4e4dc13ec58be22c91c173c244fe4acf85be74583732a288e129db9d8db11f951a23b437d",
-          "sha256": "459d8de6dedd07deffc9b07e011a17de4f8b4397051da60d60a4e44a2beb2c60",
-          "sha1": "9440149651df0780b4ba39a7274d9ea17f905bd6",
-          "md5": "b43a513769008199425046088e6d53df"
+          "size": 24037,
+          "sha512": "eb5134632b3e985fb3e9bad39ca3947b01574fee0b5dbe5c7ebee9ec9fe4eab1ec3c02f6379a809cdf0f636158556c8da67cdf9b25a3b269f1687fa2a1491824",
+          "sha256": "b44576c5b6c1ad69ba66b82efe61c9008730d052115bcf3ca23119efa5470a7e",
+          "sha1": "537e0443272b9aec59f06f7318dd968faba7c6bc",
+          "md5": "a79c809a4b6106ed85b5db7650697029"
         }
       ]
     },
@@ -102,11 +102,11 @@
         {
           "name": "processor-1.0-SNAPSHOT.jar",
           "url": "processor-1.0-SNAPSHOT.jar",
-          "size": 7061,
-          "sha512": "ab923e10a71231a3c987c5028320385d2578cfb045c00d482bed4ba4e4dc13ec58be22c91c173c244fe4acf85be74583732a288e129db9d8db11f951a23b437d",
-          "sha256": "459d8de6dedd07deffc9b07e011a17de4f8b4397051da60d60a4e44a2beb2c60",
-          "sha1": "9440149651df0780b4ba39a7274d9ea17f905bd6",
-          "md5": "b43a513769008199425046088e6d53df"
+          "size": 24037,
+          "sha512": "eb5134632b3e985fb3e9bad39ca3947b01574fee0b5dbe5c7ebee9ec9fe4eab1ec3c02f6379a809cdf0f636158556c8da67cdf9b25a3b269f1687fa2a1491824",
+          "sha256": "b44576c5b6c1ad69ba66b82efe61c9008730d052115bcf3ca23119efa5470a7e",
+          "sha1": "537e0443272b9aec59f06f7318dd968faba7c6bc",
+          "md5": "a79c809a4b6106ed85b5db7650697029"
         }
       ]
     }
