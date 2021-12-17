@@ -1,4 +1,4 @@
-package com.beelder.utils;
+package com.beelder.processor.utils;
 
 import javax.lang.model.element.Modifier;
 import java.util.Arrays;

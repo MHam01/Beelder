@@ -1,9 +1,5 @@
 package com.beelder.processor.classbuilder.entities;
 
-import com.beelder.utils.BeelderUtils;
-
-import java.util.Objects;
-
 public class Variable extends Type {
     private final String type;
     private final String value;
