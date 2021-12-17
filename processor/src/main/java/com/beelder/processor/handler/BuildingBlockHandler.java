@@ -28,6 +28,11 @@ import static javax.lang.model.element.Modifier.PROTECTED;
 
 public class BuildingBlockHandler implements IAnnotationHandler {
     @Override
+    public boolean canHandle(TypeElement annotation) {
+        return annotation.getQualifiedName().contentEquals(BuildingBlock.class.getName());
+    }
+
+    @Override
     public void handleAnnotation(TypeElement annotation, RoundEnvironment roundEnvironment, ProcessingEnvironment processingEnvironment) {
         roundEnvironment.getElementsAnnotatedWith(annotation).forEach(e -> handleAnnotatedElement(e, processingEnvironment));
     }
@@ -38,6 +43,14 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         }
     }
 
+    /**
+     * Checks if a given field is either final (not suitable to be modified by a builder),
+     * public/package-private (assign the variable directly in the generated builder)
+     * or private (checks for a setter method in the original class)!
+     *
+     * @param field The annotated field
+     * @param procEnv The current processing environment in order to throw compiler error if needed
+     */
     private void handleField(final Element field, final ProcessingEnvironment procEnv) {
         final String enclosingClazz = ElementUtils.getBuilderNameFor(field);
         final Set<Modifier> modifiers = field.getModifiers();
@@ -56,6 +69,12 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         }
     }
 
+    /**
+     * Field is public/package-private -> create direct assignment.
+     *
+     * @param clazz The root clazz object
+     * @param element The field
+     */
     private void addPublicVarAssign(final Clazz clazz, final Element element) {
         final String fieldName = ElementUtils.getElementNameSimple(element);
         final String methodName = getSetterMethod(element);
@@ -65,6 +84,13 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         method.getLeft().addLine(BeelderConstants.RETURN_THIS_STR);
     }
 
+    /**
+     * Field is private, but contains a setter method -> create method call.
+     *
+     * @param clazz The root clazz object
+     * @param method The setter method
+     * @param fromField The field which is set
+     */
     private void addSetterMethodCall(final Clazz clazz, final Element method, final Element fromField) {
         final String methodName = ElementUtils.getElementNameSimple(method);
 
@@ -87,6 +113,15 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         return element.getEnclosedElements().stream().filter(e -> e.getSimpleName().contentEquals(methodName)).findFirst().orElse(null);
     }
 
+    /**
+     * Checks if a found setter method is either null (no setter method cannot be handled)
+     * or private/protected (inaccessible methods cannot be called).
+     *
+     * @param source The source field
+     * @param setterMethod The setter method found
+     * @param procEnv The current processing environment in order to throw compiler error if needed
+     * @return True if this setter method can be used, false otherwise
+     */
     private boolean checkSetterMethod(final Element source, final Element setterMethod, final ProcessingEnvironment procEnv) {
         if(Objects.isNull(setterMethod)) {
             procEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Field " + source + " is annotated with @BuildingBlock, but it's enclosing class does not contain a valid setter method!", source);
@@ -99,12 +134,14 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         return true;
     }
 
+    /**
+     * Generates the setter method name for a given element, e.g.
+     * getSetterMethod(field) = "setField".
+     *
+     * @param element The element
+     * @return setter method as a string
+     */
     private String getSetterMethod(final Element element) {
         return "set".concat(StringUtils.capitalize(ElementUtils.getElementNameSimple(element)));
-    }
-
-    @Override
-    public boolean canHandle(TypeElement annotation) {
-        return annotation.getQualifiedName().contentEquals(BuildingBlock.QUALIFIED_NAME);
     }
 }

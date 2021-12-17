@@ -6,13 +6,24 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class Type {
+    /**
+     * All {@link Modifier}s of this type.
+     */
     private final List<Modifier> modifiers = new ArrayList<>();
 
     private String key;
 
+
+    /**
+     * Creates a new type by the given name.
+     *
+     * @param key The type name
+     */
     public Type(final String key) {
         this.key = key;
     }
+
+
 
     public final String getKey() {
         return this.key;
@@ -22,6 +33,11 @@ public abstract class Type {
         return Collections.unmodifiableList(modifiers);
     }
 
+    /**
+     * Adds a new modifier to this type if it is not yet contained.
+     *
+     * @param modifier Modifier to be added
+     */
     public final void addModifier(final Modifier modifier) {
         if(!this.modifiers.contains(modifier)) {
             this.modifiers.add(modifier);
