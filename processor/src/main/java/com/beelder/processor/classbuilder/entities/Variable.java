@@ -1,5 +1,10 @@
 package com.beelder.processor.classbuilder.entities;
 
+import com.beelder.processor.utils.BeelderUtils;
+import com.beelder.processor.utils.StringBuilderUtils;
+
+import java.util.Objects;
+
 public class Variable extends Type {
     /**
      * Type of this variable.
@@ -26,6 +31,20 @@ public class Variable extends Type {
         this.value = value;
     }
 
+
+    @Override
+    public String build(final int depth) {
+        final StringBuilder variableString = new StringBuilder();
+        StringBuilderUtils.indent(variableString, depth);
+        getModifiers().stream().map(BeelderUtils::modififerToLowercase).forEach(m -> variableString.append(m).append(" "));
+        variableString.append(this.type).append(" ").append(getKey());
+
+        if(Objects.nonNull(this.value)) {
+            variableString.append(" = ").append(this.value);
+        }
+
+        return variableString.toString();
+    }
 
     public String getType() {
         return this.type;

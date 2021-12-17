@@ -43,4 +43,17 @@ public abstract class Type {
             this.modifiers.add(modifier);
         }
     }
+
+    /**
+     * @return Complex toString representation of this type
+     */
+    public final String build() {
+        return build(0);
+    }
+
+    /**
+     * @param depth The current depth
+     * @return Complex toString representation of this type
+     */
+    public abstract String build(final int depth);
 }
