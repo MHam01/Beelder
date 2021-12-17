@@ -1,4 +1,6 @@
 .idea/**
 .gradle/**
-**build/**
+build/**
 **.class
+/annotations/build/**
+/processor/build/**
