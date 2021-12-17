@@ -2,10 +2,12 @@ package com.beelder.processor;
 
 import com.beelder.annotations.Buildable;
 import com.beelder.annotations.BuildingBlock;
+import com.google.auto.service.AutoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
@@ -15,6 +17,7 @@ import java.util.Set;
 
 @SupportedAnnotationTypes({Buildable.QUALIFIED_NAME, BuildingBlock.QUALIFIED_NAME})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
+@AutoService(Processor.class)
 public class BuilderProcessor extends AbstractProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(BuilderProcessor.class);
 

@@ -12,6 +12,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.SOURCE)
 public @interface BuildingBlock {
-    String QUALIFIED_NAME = "com.beelder.annotations.BuildingBlock";
+    String QUALIFIED_NAME = "annotations.BuildingBlock";
     String SIMPLE_NAME = "BuildingBlock";
 }

@@ -15,6 +15,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Buildable {
-    String QUALIFIED_NAME = "com.beelder.annotations.Buildable";
+    String QUALIFIED_NAME = "annotations.Buildable";
     String SIMPLE_NAME = "Buildable";
 }
