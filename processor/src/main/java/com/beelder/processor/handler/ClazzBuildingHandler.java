@@ -43,7 +43,7 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
 
         method.setReturnType(builds.getType());
         method.addModifier(Modifier.PUBLIC);
-        method.addLine("return ".concat(builds.getKey().concat(";")));
+        method.addReturnStatement(builds.getKey());
     }
 
     /**

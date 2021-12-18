@@ -2,8 +2,11 @@ package com.beelder.processor.utils;
 
 import com.beelder.processor.constants.BeelderConstants;
 
+import javax.annotation.Nonnull;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 
 public final class ElementUtils {
     private ElementUtils() {
@@ -44,5 +47,19 @@ public final class ElementUtils {
         }
 
         return element.getSimpleName().toString().concat(BeelderConstants.BUILDABLE_CLASS_SUFFIX);
+    }
+
+    /**
+     * Casts the given element into an {@link ExecutableElement}.
+     *
+     * @param element The element to be cast
+     * @return The cast element if possible, null otherwise
+     */
+    public static ExecutableElement asMethod(final Element element) {
+        try {
+            return (ExecutableElement) element;
+        } catch (ClassCastException e) {
+            return null;
+        }
     }
 }

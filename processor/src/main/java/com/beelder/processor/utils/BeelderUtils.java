@@ -1,6 +1,11 @@
 package com.beelder.processor.utils;
 
+import com.beelder.processor.constants.BeelderConstants;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.tools.Diagnostic;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -42,5 +47,18 @@ public final class BeelderUtils {
      */
     public static String modififerToLowercase(final Modifier modifier) {
         return modifier.name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Prints a compiler message to the given processing environment, using {@link BeelderConstants#MESSAGE_IN_PROC_ENV_BASE}.
+     *
+     * @param procEnv The processing env
+     * @param msgKind Diagnostic kind of the message
+     * @param annotName The name of the annotation throwing this message
+     * @param suffix The suffix to be printed after {@link BeelderConstants#MESSAGE_IN_PROC_ENV_BASE}
+     * @param element The element source
+     */
+    public static void messageElementAnnotatedWith(final ProcessingEnvironment procEnv, final Diagnostic.Kind msgKind, final String annotName, final String suffix, final Element element) {
+        procEnv.getMessager().printMessage(msgKind, String.format(BeelderConstants.MESSAGE_IN_PROC_ENV_BASE, element.getKind().name().toLowerCase(Locale.ROOT), element, annotName, suffix), element);
     }
 }

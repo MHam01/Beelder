@@ -1,9 +1,14 @@
 package com.beelder.processor.classbuilder.entities;
 
 import com.beelder.processor.utils.BeelderUtils;
+import com.beelder.processor.utils.ElementUtils;
 import com.beelder.processor.utils.StringBuilderUtils;
 
+import javax.lang.model.element.VariableElement;
 import java.util.Objects;
+
+import static com.beelder.processor.utils.ElementUtils.getElementNameQualified;
+import static com.beelder.processor.utils.ElementUtils.getElementType;
 
 public class Variable extends Type {
     /**
@@ -48,5 +53,13 @@ public class Variable extends Type {
 
     public String getType() {
         return this.type;
+    }
+
+    public static Variable from(VariableElement element) {
+        if(Objects.nonNull(element.getConstantValue())) {
+            return new Variable(getElementType(element), getElementNameQualified(element), element.getConstantValue().toString());
+        }
+
+        return new Variable(getElementType(element), getElementNameQualified(element));
     }
 }

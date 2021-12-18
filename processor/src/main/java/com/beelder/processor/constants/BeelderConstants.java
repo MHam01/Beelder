@@ -26,7 +26,7 @@ public final class BeelderConstants {
     public static final String BUILD_METHOD_NAME = "build";
 
     /**
-     * Util string for a reoccurring "return this;" in the generated builder.
+     * Helper string for generic processing environment messages.
      */
-    public static final String RETURN_THIS_STR = "return this;";
+    public static final String MESSAGE_IN_PROC_ENV_BASE = "%s %s is annotated with @%s, %s!";
 }

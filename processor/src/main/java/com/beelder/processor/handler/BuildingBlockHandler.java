@@ -16,8 +16,10 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
 import javax.tools.Diagnostic;
 import java.util.Objects;
 import java.util.Set;
@@ -40,6 +42,8 @@ public class BuildingBlockHandler implements IAnnotationHandler {
     private void handleAnnotatedElement(final Element element, final ProcessingEnvironment procEnv) {
         if(ElementKind.FIELD.equals(element.getKind())) {
             handleField(element, procEnv);
+        } else if(ElementKind.METHOD.equals(element.getKind())) {
+            handleMethod(element, procEnv);
         }
     }
 
@@ -56,17 +60,54 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         final Set<Modifier> modifiers = field.getModifiers();
 
         if(modifiers.contains(FINAL)) {
-            procEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Field " + field + " is annotated with @BuildingBlock, but is final!", field);
+            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is final", field);
         } else if(BeelderUtils.containsNone(modifiers, PRIVATE, PROTECTED)) {
             addPublicVarAssign(ClazzBuilder.getRootForName(enclosingClazz), field);
         } else {
-            final Element setterMethod = checkForSetterMethod(field.getEnclosingElement(), getSetterMethod(field));
-            if(!checkSetterMethod(field, setterMethod, procEnv)){
+            final Element setterMethod = lookForSetterMethod(field.getEnclosingElement(), getSetterMethod(field));
+            if(Objects.isNull(setterMethod)) {
+                BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but it's enclosing class does not contain a valid setter method", field);
                 return;
             }
 
-            addSetterMethodCall(ClazzBuilder.getRootForName(enclosingClazz), setterMethod, field);
+            handleMethod(setterMethod, procEnv);
         }
+    }
+
+    /**
+     * Checks if a given method is either private/protected (not suitable to be called by a builder),
+     * or not returning void (should probably not be called without considering the returned object),
+     * else adds this method to the builder.
+     *
+     * @param methodEl The method as an element
+     * @param procEnv The current processing environment
+     */
+    private void handleMethod(final Element methodEl, final ProcessingEnvironment procEnv) {
+        final String methodName = ElementUtils.getElementNameSimple(methodEl);
+        final String enclosingClazz = ElementUtils.getBuilderNameFor(methodEl);
+        final Set<Modifier> modifiers = methodEl.getModifiers();
+
+        if(BeelderUtils.containsAny(modifiers, PRIVATE, PROTECTED)) {
+            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is not accessible from outside the class", methodEl);
+            return;
+        }
+
+        final ExecutableElement methodExecEl = ElementUtils.asMethod(methodEl);
+        if(Objects.isNull(methodExecEl)) {
+            // Should never occur, but just to be sure
+            return;
+        } else if(!TypeKind.VOID.equals(methodExecEl.getReturnType().getKind())) {
+            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.WARNING, BuildingBlock.SIMPLE_NAME, "and it's return statement will be ignored in the generated builder", methodEl);
+        }
+
+        final Clazz clazz = ClazzBuilder.getRootForName(enclosingClazz);
+        final Method method = clazz.fetchMethod(ElementUtils.getElementNameSimple(methodEl));
+        method.setReturnType(enclosingClazz);
+        methodExecEl.getParameters().stream().map(Variable::from).forEach(method::addParameter);
+
+        final String[] parametersAsStr = method.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
+        method.addLine(StatementBuilder.createMethodCall(BeelderConstants.BUILDABLE_OBJECT_NAME, methodName, parametersAsStr));
+        method.addReturnStatement("this");
     }
 
     /**
@@ -78,60 +119,17 @@ public class BuildingBlockHandler implements IAnnotationHandler {
     private void addPublicVarAssign(final Clazz clazz, final Element element) {
         final String fieldName = ElementUtils.getElementNameSimple(element);
         final String methodName = getSetterMethod(element);
+        final Method method = clazz.fetchMethod(methodName);
 
-        final Pair<Method, Variable> method = createMethodBase(methodName, clazz, element);
-        method.getLeft().addLine(StatementBuilder.createAssignment(BeelderConstants.BUILDABLE_OBJECT_NAME, fieldName, method.getRight().getKey()));
-        method.getLeft().addLine(BeelderConstants.RETURN_THIS_STR);
-    }
-
-    /**
-     * Field is private, but contains a setter method -> create method call.
-     *
-     * @param clazz The root clazz object
-     * @param method The setter method
-     * @param fromField The field which is set
-     */
-    private void addSetterMethodCall(final Clazz clazz, final Element method, final Element fromField) {
-        final String methodName = ElementUtils.getElementNameSimple(method);
-
-        final Pair<Method, Variable> methodObj = createMethodBase(methodName, clazz, fromField);
-        methodObj.getLeft().addLine(StatementBuilder.createMethodCall(BeelderConstants.BUILDABLE_OBJECT_NAME, methodName, methodObj.getRight().getKey()));
-        methodObj.getLeft().addLine(BeelderConstants.RETURN_THIS_STR);
-    }
-
-    private Pair<Method, Variable> createMethodBase(final String name, final Clazz clazz, final Element sourceField) {
-        final Method method = clazz.fetchMethod(name);
-
-        final Variable param = new Variable(ElementUtils.getElementType(sourceField), BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
+        final Variable param = new Variable(ElementUtils.getElementType(element), BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
         method.setReturnType(clazz.getKey());
         method.addParameter(param);
-
-        return Pair.of(method, param);
+        method.addLine(StatementBuilder.createAssignment(BeelderConstants.BUILDABLE_OBJECT_NAME, fieldName, param.getKey()));
+        method.addLine("this");
     }
 
-    private Element checkForSetterMethod(final Element element, final String methodName) {
+    private Element lookForSetterMethod(final Element element, final String methodName) {
         return element.getEnclosedElements().stream().filter(e -> e.getSimpleName().contentEquals(methodName)).findFirst().orElse(null);
-    }
-
-    /**
-     * Checks if a found setter method is either null (no setter method cannot be handled)
-     * or private/protected (inaccessible methods cannot be called).
-     *
-     * @param source The source field
-     * @param setterMethod The setter method found
-     * @param procEnv The current processing environment in order to throw compiler error if needed
-     * @return True if this setter method can be used, false otherwise
-     */
-    private boolean checkSetterMethod(final Element source, final Element setterMethod, final ProcessingEnvironment procEnv) {
-        if(Objects.isNull(setterMethod)) {
-            procEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Field " + source + " is annotated with @BuildingBlock, but it's enclosing class does not contain a valid setter method!", source);
-            return false;
-        } else if(BeelderUtils.containsAny(setterMethod.getModifiers(), PRIVATE, PROTECTED)) {
-            procEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Field " + source + " is annotated with @BuildingBlock, but it's setter method is private!", source);
-            return false;
-        }
-
-        return true;
     }
 
     /**

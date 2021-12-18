@@ -1,6 +1,10 @@
+# ignore idea files
 .idea/**
+
+# ignore generated gradle folder
 .gradle/**
+
+# ignore build dirs
 build/**
-**.class
 /annotations/build/**
 /processor/build/**
