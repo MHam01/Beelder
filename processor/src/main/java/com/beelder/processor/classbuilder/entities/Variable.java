@@ -1,7 +1,6 @@
 package com.beelder.processor.classbuilder.entities;
 
 import com.beelder.processor.utils.BeelderUtils;
-import com.beelder.processor.utils.ElementUtils;
 import com.beelder.processor.utils.StringBuilderUtils;
 
 import javax.lang.model.element.VariableElement;

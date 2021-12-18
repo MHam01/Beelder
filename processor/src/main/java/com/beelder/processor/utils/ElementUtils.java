@@ -2,11 +2,9 @@ package com.beelder.processor.utils;
 
 import com.beelder.processor.constants.BeelderConstants;
 
-import javax.annotation.Nonnull;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
 
 public final class ElementUtils {
     private ElementUtils() {

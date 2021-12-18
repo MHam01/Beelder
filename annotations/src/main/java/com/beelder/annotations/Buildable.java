@@ -17,4 +17,11 @@ import java.lang.annotation.Target;
 public @interface Buildable {
     String QUALIFIED_NAME = "com.beelder.annotations.Buildable";
     String SIMPLE_NAME = "Buildable";
+
+    /**
+     * If set to true, the builder generated from the class annotated with this will
+     * be allowed to overwrite private fields using reflection. It is recommended to
+     * use this option with care!
+     */
+    boolean writeWithReflection() default false;
 }

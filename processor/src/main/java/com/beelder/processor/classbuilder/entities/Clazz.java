@@ -93,6 +93,10 @@ public class Clazz extends Type {
         return Collections.unmodifiableSet(this.variables);
     }
 
+    public Variable getVariableFor(final String name) {
+        return this.variables.stream().filter(var -> name.equals(var.getKey())).findFirst().orElse(null);
+    }
+
     public void setPackageIdent(String packageIdent) {
         this.packageIdent = packageIdent;
     }

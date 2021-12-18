@@ -1,5 +1,6 @@
 package com.beelder.processor.handler;
 
+import com.beelder.annotations.Buildable;
 import com.beelder.annotations.BuildingBlock;
 import com.beelder.processor.classbuilder.ClazzBuilder;
 import com.beelder.processor.classbuilder.entities.Clazz;
@@ -10,7 +11,6 @@ import com.beelder.processor.constants.BeelderConstants;
 import com.beelder.processor.utils.BeelderUtils;
 import com.beelder.processor.utils.ElementUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +29,7 @@ import java.util.Set;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PROTECTED;
+import static javax.lang.model.element.Modifier.STATIC;
 
 public class BuildingBlockHandler implements IAnnotationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(BuildingBlockHandler.class);
@@ -46,6 +47,10 @@ public class BuildingBlockHandler implements IAnnotationHandler {
     }
 
     private void handleAnnotatedElement(final Element element, final ProcessingEnvironment procEnv) {
+        if(!checkEnclosingClass(element, procEnv)) {
+            return;
+        }
+
         if(ElementKind.FIELD.equals(element.getKind())) {
             LOG.debug("Handling field {} annotated with {}...", element.getSimpleName(), BuildingBlock.SIMPLE_NAME);
             handleField(element, procEnv);
@@ -53,6 +58,28 @@ public class BuildingBlockHandler implements IAnnotationHandler {
             LOG.debug("Handling method {} annotated with {}...", element.getSimpleName(), BuildingBlock.SIMPLE_NAME);
             handleMethod(element, procEnv);
         }
+    }
+
+    /**
+     * Checks if the enclosing class is annotated with {@link Buildable}. If it is not builder generation will be
+     * aborted, because the respective {@link Clazz} will be missing!
+     *
+     * @param fieldOrMethod Field or method in the class to be checked
+     * @param procEnv The current processing environment
+     * @return True if handling can continue, false otherwise
+     */
+    private boolean checkEnclosingClass(final Element fieldOrMethod, final ProcessingEnvironment procEnv) {
+        if(Objects.nonNull(fetchAnnotationForEnclosing(fieldOrMethod))) {
+            return true;
+        }
+
+        LOG.error("Enclosing class of field or method {} is not annotated with @{}, builder generation will be aborted!", fieldOrMethod.getSimpleName(), Buildable.SIMPLE_NAME);
+        BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.WARNING, BuildingBlock.SIMPLE_NAME, "but enclosing class is not annotated with @".concat(Buildable.SIMPLE_NAME).concat("! Builder will not be generated"), fieldOrMethod);
+        return false;
+    }
+
+    private Buildable fetchAnnotationForEnclosing(final Element fieldOrMethod) {
+        return fieldOrMethod.getEnclosingElement().getAnnotation(Buildable.class);
     }
 
     /**
@@ -67,12 +94,15 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         final String enclosingClazz = ElementUtils.getBuilderNameFor(field);
         final Set<Modifier> modifiers = field.getModifiers();
 
-        if(modifiers.contains(FINAL)) {
+        if(BeelderUtils.containsAny(modifiers, FINAL, STATIC)) {
             LOG.debug("Field is final, throwing compiler error!");
-            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is final", field);
+            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is final or static", field);
         } else if(BeelderUtils.containsNone(modifiers, PRIVATE, PROTECTED)) {
             LOG.debug("Field is accessible, adding new method to builder root!");
             addPublicVarAssign(ClazzBuilder.getRootForName(enclosingClazz), field);
+        } else if(fetchAnnotationForEnclosing(field).writeWithReflection()) {
+            LOG.debug("Field is not accessible, but setting via reflection was enabled for this builder!");
+            addReflectionSettingMethod(field, enclosingClazz);
         } else {
             final Element setterMethod = lookForSetterMethod(field.getEnclosingElement(), getSetterMethod(field));
             if(Objects.isNull(setterMethod)) {
@@ -84,6 +114,34 @@ public class BuildingBlockHandler implements IAnnotationHandler {
             LOG.debug("Found setter method for field {}...", field.getSimpleName());
             handleMethod(setterMethod, procEnv);
         }
+    }
+
+    /**
+     * Is only called if reflection is enabled for the generated builder. Generates a try-catch
+     * block to set the given field in the source object via reflection and adds the method for
+     * that to the builder root.
+     *
+     * @param field The field to be set
+     * @param builderName The builders name
+     */
+    private void addReflectionSettingMethod(final Element field, final String builderName) {
+        final String fieldNameSimple = ElementUtils.getElementNameSimple(field);
+        final Clazz clazz = ClazzBuilder.getRootForName(builderName);
+        final Variable objectVar = clazz.getVariableFor(BeelderConstants.BUILDABLE_OBJECT_NAME);
+
+        final StatementBuilder.TryBlock theTry = StatementBuilder.createTryBlock();
+        theTry.addLine("java.lang.reflect.Field field = ".concat(objectVar.getType()).concat(".class.getDeclaredField(\"").concat(fieldNameSimple).concat("\");"));
+        theTry.addLine("field.setAccessible(true);");
+        theTry.addLine("field.set(".concat(BeelderConstants.BUILDABLE_OBJECT_NAME).concat(", ").concat(BeelderConstants.SETTER_METHOD_PARAM_NAME).concat(");"));
+        theTry.addLine("field.setAccessible(false);");
+        theTry.addLineToCatchClause("", "NoSuchFieldException | IllegalAccessException");
+
+        final Method method = clazz.fetchMethod(getSetterMethod(field));
+        final Variable param = new Variable(ElementUtils.getElementType(field), BeelderConstants.SETTER_METHOD_PARAM_NAME);
+        method.setReturnType(builderName);
+        method.addParameter(param);
+        method.addLine(theTry.build(2));
+        method.addReturnStatement("this");
     }
 
     /**
@@ -117,7 +175,10 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         final Clazz clazz = ClazzBuilder.getRootForName(enclosingClazz);
         final Method method = clazz.fetchMethod(ElementUtils.getElementNameSimple(methodEl));
         method.setReturnType(enclosingClazz);
-        methodExecEl.getParameters().stream().map(Variable::from).forEach(method::addParameter);
+        methodExecEl.getParameters().stream().map(Variable::from).forEach(var -> {
+            var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
+            method.addParameter(var);
+        });
 
         final String[] parametersAsStr = method.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
         method.addLine(StatementBuilder.createMethodCall(BeelderConstants.BUILDABLE_OBJECT_NAME, methodName, parametersAsStr));
@@ -135,11 +196,11 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         final String methodName = getSetterMethod(element);
         final Method method = clazz.fetchMethod(methodName);
 
-        final Variable param = new Variable(ElementUtils.getElementType(element), BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
+        final Variable param = new Variable(ElementUtils.getElementType(element), BeelderConstants.SETTER_METHOD_PARAM_NAME);
         method.setReturnType(clazz.getKey());
         method.addParameter(param);
         method.addLine(StatementBuilder.createAssignment(BeelderConstants.BUILDABLE_OBJECT_NAME, fieldName, param.getKey()));
-        method.addLine("this");
+        method.addReturnStatement("this");
     }
 
     private Element lookForSetterMethod(final Element element, final String methodName) {

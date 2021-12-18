@@ -24,6 +24,9 @@ public abstract class Type {
     }
 
 
+    public final void setKey(String key) {
+        this.key = key;
+    }
 
     public final String getKey() {
         return this.key;
