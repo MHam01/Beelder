@@ -60,6 +60,10 @@ public class Clazz extends Type {
         sb.append("class ").append(getKey()).append(" {\n\n");
     }
 
+    public boolean containsMethod(final String key) {
+        return this.methods.containsKey(key);
+    }
+
     /**
      * Looks up a {@link Method} with the given name in this class, creates
      * it if not existing.
@@ -68,7 +72,7 @@ public class Clazz extends Type {
      * @return The method object
      */
     public Method fetchMethod(final String key) {
-        return methods.computeIfAbsent(key, Method::new);
+        return this.methods.computeIfAbsent(key, Method::new);
     }
 
     /**

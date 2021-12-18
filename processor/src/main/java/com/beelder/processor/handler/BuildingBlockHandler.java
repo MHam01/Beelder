@@ -100,19 +100,25 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         } else if(BeelderUtils.containsNone(modifiers, PRIVATE, PROTECTED)) {
             LOG.debug("Field is accessible, adding new method to builder root!");
             addPublicVarAssign(ClazzBuilder.getRootForName(enclosingClazz), field);
-        } else if(fetchAnnotationForEnclosing(field).writeWithReflection()) {
-            LOG.debug("Field is not accessible, but setting via reflection was enabled for this builder!");
-            addReflectionSettingMethod(field, enclosingClazz);
         } else {
             final Element setterMethod = lookForSetterMethod(field.getEnclosingElement(), getSetterMethod(field));
-            if(Objects.isNull(setterMethod)) {
-                LOG.debug("Field is private and does not contain a valid setter method, throwing compiler error!");
-                BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but it's enclosing class does not contain a valid setter method", field);
+            if(Objects.isNull(setterMethod) && fetchAnnotationForEnclosing(field).writeWithReflection()) {
+                handleNullSetter(field, enclosingClazz, procEnv);
                 return;
             }
 
             LOG.debug("Found setter method for field {}...", field.getSimpleName());
             handleMethod(setterMethod, procEnv);
+        }
+    }
+
+    private void handleNullSetter(final Element source, final String enclosingClazz, final ProcessingEnvironment procEnv) {
+        if(fetchAnnotationForEnclosing(source).writeWithReflection()) {
+            LOG.debug("Field is not accessible, but setting via reflection was enabled for this builder!");
+            addReflectionSettingMethod(source, enclosingClazz);
+        } else {
+            LOG.debug("Field is private and does not contain a valid setter method, throwing compiler error!");
+            BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but it's enclosing class does not contain a valid setter method", source);
         }
     }
 
@@ -129,10 +135,14 @@ public class BuildingBlockHandler implements IAnnotationHandler {
         final Clazz clazz = ClazzBuilder.getRootForName(builderName);
         final Variable objectVar = clazz.getVariableFor(BeelderConstants.BUILDABLE_OBJECT_NAME);
 
+        if(clazz.containsMethod(getSetterMethod(field))) {
+            return;
+        }
+
         final StatementBuilder.TryBlock theTry = StatementBuilder.createTryBlock();
         theTry.addLine("java.lang.reflect.Field field = ".concat(objectVar.getType()).concat(".class.getDeclaredField(\"").concat(fieldNameSimple).concat("\");"));
         theTry.addLine("field.setAccessible(true);");
-        theTry.addLine("field.set(".concat(BeelderConstants.BUILDABLE_OBJECT_NAME).concat(", ").concat(BeelderConstants.SETTER_METHOD_PARAM_NAME).concat(");"));
+        theTry.addLine("field.set(".concat("this.".concat(BeelderConstants.BUILDABLE_OBJECT_NAME)).concat(", ").concat(BeelderConstants.SETTER_METHOD_PARAM_NAME).concat(");"));
         theTry.addLine("field.setAccessible(false);");
         theTry.addLineToCatchClause("", "NoSuchFieldException | IllegalAccessException");
 
@@ -153,8 +163,6 @@ public class BuildingBlockHandler implements IAnnotationHandler {
      * @param procEnv The current processing environment
      */
     private void handleMethod(final Element methodEl, final ProcessingEnvironment procEnv) {
-        final String methodName = ElementUtils.getElementNameSimple(methodEl);
-        final String enclosingClazz = ElementUtils.getBuilderNameFor(methodEl);
         final Set<Modifier> modifiers = methodEl.getModifiers();
 
         if(BeelderUtils.containsAny(modifiers, PRIVATE, PROTECTED)) {
@@ -172,16 +180,23 @@ public class BuildingBlockHandler implements IAnnotationHandler {
             BeelderUtils.messageElementAnnotatedWith(procEnv, Diagnostic.Kind.WARNING, BuildingBlock.SIMPLE_NAME, "and it's return statement will be ignored in the generated builder", methodEl);
         }
 
+        final String enclosingClazz = ElementUtils.getBuilderNameFor(methodEl);
         final Clazz clazz = ClazzBuilder.getRootForName(enclosingClazz);
-        final Method method = clazz.fetchMethod(ElementUtils.getElementNameSimple(methodEl));
+        final String methodName = ElementUtils.getElementNameSimple(methodEl);
+
+        if(clazz.containsMethod(methodName)) {
+            return;
+        }
+
+        final Method method = clazz.fetchMethod(methodName);
         method.setReturnType(enclosingClazz);
         methodExecEl.getParameters().stream().map(Variable::from).forEach(var -> {
-            var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
+            var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME);
             method.addParameter(var);
         });
 
         final String[] parametersAsStr = method.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
-        method.addLine(StatementBuilder.createMethodCall(BeelderConstants.BUILDABLE_OBJECT_NAME, methodName, parametersAsStr));
+        method.addLine(StatementBuilder.createMethodCall("this.".concat(BeelderConstants.BUILDABLE_OBJECT_NAME), methodName, parametersAsStr));
         method.addReturnStatement("this");
     }
 
@@ -194,12 +209,16 @@ public class BuildingBlockHandler implements IAnnotationHandler {
     private void addPublicVarAssign(final Clazz clazz, final Element element) {
         final String fieldName = ElementUtils.getElementNameSimple(element);
         final String methodName = getSetterMethod(element);
-        final Method method = clazz.fetchMethod(methodName);
 
+        if(clazz.containsMethod(methodName)) {
+            return;
+        }
+
+        final Method method = clazz.fetchMethod(methodName);
         final Variable param = new Variable(ElementUtils.getElementType(element), BeelderConstants.SETTER_METHOD_PARAM_NAME);
         method.setReturnType(clazz.getKey());
         method.addParameter(param);
-        method.addLine(StatementBuilder.createAssignment(BeelderConstants.BUILDABLE_OBJECT_NAME, fieldName, param.getKey()));
+        method.addLine(StatementBuilder.createAssignment("this.".concat(BeelderConstants.BUILDABLE_OBJECT_NAME), fieldName, param.getKey()));
         method.addReturnStatement("this");
     }
 

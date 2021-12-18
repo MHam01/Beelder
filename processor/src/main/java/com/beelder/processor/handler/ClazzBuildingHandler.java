@@ -49,7 +49,7 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
 
         method.setReturnType(builds.getType());
         method.addModifier(Modifier.PUBLIC);
-        method.addReturnStatement(builds.getKey());
+        method.addReturnStatement("this.".concat(builds.getKey()));
     }
 
     /**
