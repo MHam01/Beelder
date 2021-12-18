@@ -5,6 +5,8 @@ import com.beelder.processor.classbuilder.entities.Clazz;
 import com.beelder.processor.classbuilder.entities.Method;
 import com.beelder.processor.classbuilder.entities.Variable;
 import com.beelder.processor.constants.BeelderConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
@@ -17,6 +19,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClazzBuildingHandler implements IAnnotationHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(ClazzBuildingHandler.class);
+
     private final AtomicBoolean handleOnce = new AtomicBoolean(true);
 
     @Override
@@ -26,7 +30,9 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
 
     @Override
     public void handleAnnotation(TypeElement annotation, RoundEnvironment roundEnvironment, ProcessingEnvironment processingEnvironment) {
+        LOG.info("Building class-builder source files...");
         ClazzBuilder.fetchAllClazzes().stream().peek(this::addBuildMethodTo).forEach(c -> writeClazzToSourceFile(c, processingEnvironment));
+        LOG.info("Successfully built builder classes!");
     }
 
     /**
@@ -62,7 +68,7 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
             writer.println(clazz.build());
             writer.flush();
         } catch (IOException e) {
-
+            LOG.error("Could not write contents to generated source file [{}]", clazz.getKey(), e);
         }
     }
 
@@ -73,6 +79,7 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
         try {
             return procEnv.getFiler().createSourceFile(name);
         } catch (IOException e) {
+            LOG.error("Could not write new source file [{}] to generated output!", name, e);
             return null;
         }
     }
