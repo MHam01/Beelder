@@ -26,10 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static javax.lang.model.element.Modifier.ABSTRACT;
-import static javax.lang.model.element.Modifier.PRIVATE;
-import static javax.lang.model.element.Modifier.PROTECTED;
-import static javax.lang.model.element.Modifier.PUBLIC;
+import static javax.lang.model.element.Modifier.*;
 
 public final class BuildableHandler implements IAnnotationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(BuildableHandler.class);
@@ -49,10 +46,10 @@ public final class BuildableHandler implements IAnnotationHandler {
 
             final Clazz clazz = ClazzBuilder.getRootForName(ElementUtils.getBuilderNameFor(e));
             final String classNameQual = ElementUtils.getElementNameQualified(e);
-            clazz.setPackageIdent(StringUtils.substringBeforeLast(e.toString(), "."));
-            clazz.addVariable(e.toString(), BeelderConstants.BUILDABLE_OBJECT_NAME, null, PRIVATE);
+            clazz.setPackageIdent(StringUtils.substringBeforeLast(classNameQual, "."));
+            clazz.addVariable(classNameQual, BeelderConstants.BUILDABLE_OBJECT_NAME, null, PRIVATE);
 
-            addConstructorsToClass(clazz, classNameQual, e, processingEnvironment);
+            addConstructorsToClass(clazz, e, processingEnvironment);
         });
         LOG.info("Successfully handled annotation {}!", annotation.getSimpleName());
     }
@@ -86,7 +83,9 @@ public final class BuildableHandler implements IAnnotationHandler {
      * Adds all constructors of the current class element to the respective clazz object, depending on if
      * reflection is enabled for the current element
      */
-    private void addConstructorsToClass(final Clazz clazz, final String sourceNameQual, final Element classElement, final ProcessingEnvironment procEnv) {
+    private void addConstructorsToClass(final Clazz clazz, final Element classElement, final ProcessingEnvironment procEnv) {
+        final String sourceNameQual = ElementUtils.getElementNameQualified(classElement);
+
         final Map<Boolean, List<Element>> groupedByPublic = classElement.getEnclosedElements().stream().filter(BuildableHandler::isConstructor)
                         .collect(Collectors.partitioningBy(con -> BeelderUtils.containsNone(con.getModifiers(), PRIVATE, PROTECTED)));
 
@@ -98,8 +97,14 @@ public final class BuildableHandler implements IAnnotationHandler {
             return;
         }
 
-        LOG.debug("Adding public constructors to generated builder {}...", clazz.getKey());
-        groupedByPublic.get(true).forEach(con -> addPublicConstructorToClazz(clazz, sourceNameQual, con));
+        if(!groupedByPublic.get(true).isEmpty()) {
+            LOG.debug("Class {} contains one or more non-package-private constructors, sending compiler warning!", classElement);
+            BeelderUtils.messageElementAnnotatedWith(
+                    procEnv, Diagnostic.Kind.WARNING, Buildable.SIMPLE_NAME, "but contains one or more public constructors", classElement);
+            LOG.debug("Adding public constructors to generated builder {}...", clazz.getKey());
+
+            groupedByPublic.get(true).forEach(con -> addPublicConstructorToClazz(clazz, sourceNameQual, con));
+        }
 
         if(reflectionEnabled) {
             LOG.debug("Adding private constructors to generated builder {}...", clazz.getKey());
@@ -108,35 +113,36 @@ public final class BuildableHandler implements IAnnotationHandler {
     }
 
     @SuppressWarnings("ConstantConditions") // constructor will always be a method
-    private void addPublicConstructorToClazz(final Clazz clazz, final String sourceName, final Element constructor) {
-        final ExecutableElement asMethod = ElementUtils.asMethod(constructor);
-        final Method constr = createMethodBase(clazz, asMethod);
-        final String parametersStr = constr.getParameters().stream().map(Variable::getKey).collect(Collectors.joining(", "));
-        constr.addLine(StatementBuilder.createAssignment(
+    private void addPublicConstructorToClazz(final Clazz clazz, final String sourceName, final Element constructorEl) {
+        final ExecutableElement asMethod = ElementUtils.asMethod(constructorEl);
+        final Method constructor = createMethodBase(clazz, asMethod);
+        final String parametersStr = constructor.getParameters().stream().map(Variable::getKey).collect(Collectors.joining(", "));
+        constructor.addLine(StatementBuilder.createAssignment(
                 "this", BeelderConstants.BUILDABLE_OBJECT_NAME, "new ".concat(sourceName).concat("(").concat(parametersStr).concat(")")));
 
-        clazz.addConstructor(constr);
+        clazz.addConstructor(constructor);
     }
 
     @SuppressWarnings("ConstantConditions") // constructor will always be a method
-    private void addReflectionConstructorToClazz(final Clazz clazz, final String sourceName, final Element constructor) {
-        final ExecutableElement asMethod = ElementUtils.asMethod(constructor);
-        final Method constr = createMethodBase(clazz, asMethod);
-        final String[] parameters = constr.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
+    private void addReflectionConstructorToClazz(final Clazz clazz, final String sourceName, final Element constructorEl) {
+        final ExecutableElement asMethod = ElementUtils.asMethod(constructorEl);
+        final Method constructor = createMethodBase(clazz, asMethod);
+        final String[] parameters = constructor.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
         final String newInstCall = StatementBuilder
                 .createAssignToMethodCall("this", BeelderConstants.BUILDABLE_OBJECT_NAME, "constructor", "newInstance", parameters)
                 .replace("= ", "= (".concat(sourceName).concat(") "));
+
         final StatementBuilder.TryBlock theTry = StatementBuilder.createTryBlock();
         theTry.addLine(
                 String.format("java.lang.reflect.Constructor<?> constructor = %s.class.getDeclaredConstructor(%s);",
-                        sourceName, constr.getParameters().stream().map(var -> var.getType().concat(".class")).collect(Collectors.joining(", "))));
+                        sourceName, constructor.getParameters().stream().map(var -> var.getType().concat(".class")).collect(Collectors.joining(", "))));
         theTry.addLine("constructor.setAccessible(true);");
         theTry.addLine(newInstCall);
         theTry.addLine("constructor.setAccessible(false);");
         theTry.addLineToCatchClause("", "NoSuchMethodException", "IllegalAccessException", "InstantiationException", "java.lang.reflect.InvocationTargetException");
 
-        constr.addLine(theTry.build(2));
-        clazz.addConstructor(constr);
+        constructor.addLine(theTry.build(2));
+        clazz.addConstructor(constructor);
     }
 
     private Method createMethodBase(final Clazz clazz, final ExecutableElement method) {

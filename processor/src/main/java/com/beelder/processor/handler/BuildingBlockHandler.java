@@ -158,37 +158,50 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
      * else adds this method to the builder.
      */
     private void handleMethod(final Element methodEl, final ProcessingEnvironment procEnv) {
-        final Set<Modifier> modifiers = methodEl.getModifiers();
-
-        if(BeelderUtils.containsAny(modifiers, PRIVATE, PROTECTED)) {
-            LOG.debug("Method is inaccessible, throwing compiler warning!");
-            BeelderUtils.messageElementAnnotatedWith(
-                    procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is not accessible from outside the class", methodEl);
+        if(!checkMethodMods(methodEl, procEnv)) {
             return;
-        }
-
-        final ExecutableElement methodExecEl = ElementUtils.asMethod(methodEl);
-        if(Objects.isNull(methodExecEl)) {
-            // Should never occur, but just to be sure
-            return;
-        } else if(!TypeKind.VOID.equals(methodExecEl.getReturnType().getKind())) {
-            LOG.debug("Methods return type is not void, sending compiler warning!");
-            BeelderUtils.messageElementAnnotatedWith(
-                    procEnv, Diagnostic.Kind.WARNING, BuildingBlock.SIMPLE_NAME,
-                    "and it's return statement will be ignored in the generated builder", methodEl);
         }
 
         final String enclosingClazz = ElementUtils.getBuilderNameFor(methodEl);
         final Clazz clazz = ClazzBuilder.getRootForName(enclosingClazz);
         final String methodName = ElementUtils.getElementNameSimple(methodEl);
 
-        if(clazz.containsMethod(methodName)) {
+        final ExecutableElement methodExecEl = getAsMethod(methodEl, procEnv);
+        if(clazz.containsMethod(methodName) || Objects.isNull(methodExecEl)) {
             return;
         }
 
+        createMethodCallForClazz(clazz, methodName, methodExecEl);
+    }
+
+    private boolean checkMethodMods(final Element method, final ProcessingEnvironment procEnv) {
+        if(BeelderUtils.containsAny(method.getModifiers(), PRIVATE, PROTECTED)) {
+            LOG.debug("Method is inaccessible, throwing compiler warning!");
+            BeelderUtils.messageElementAnnotatedWith(
+                    procEnv, Diagnostic.Kind.ERROR, BuildingBlock.SIMPLE_NAME, "but is not accessible from outside the class", method);
+            return false;
+        }
+
+        return true;
+    }
+
+    private ExecutableElement getAsMethod(final Element method, final ProcessingEnvironment procEnv) {
+        final ExecutableElement methodExecEl = ElementUtils.asMethod(method);
+
+        if(Objects.nonNull(methodExecEl) && !TypeKind.VOID.equals(methodExecEl.getReturnType().getKind())) {
+            LOG.debug("Methods return type is not void, sending compiler warning!");
+            BeelderUtils.messageElementAnnotatedWith(
+                    procEnv, Diagnostic.Kind.WARNING, BuildingBlock.SIMPLE_NAME,
+                    "and it's return statement will be ignored in the generated builder", method);
+        }
+
+        return methodExecEl;
+    }
+
+    private void createMethodCallForClazz(final Clazz clazz, final String methodName, final ExecutableElement methodEl) {
         final Method method = clazz.fetchMethod(methodName);
-        method.setReturnType(enclosingClazz);
-        methodExecEl.getParameters().stream().map(Variable::from).forEach(var -> {
+        method.setReturnType(clazz.getKey());
+        methodEl.getParameters().stream().map(Variable::from).forEach(var -> {
             var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME);
             method.addParameter(var);
         });
