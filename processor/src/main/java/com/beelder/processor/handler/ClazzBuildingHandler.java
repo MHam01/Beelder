@@ -18,7 +18,7 @@ import java.io.PrintWriter;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ClazzBuildingHandler implements IAnnotationHandler {
+public final class ClazzBuildingHandler implements IAnnotationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ClazzBuildingHandler.class);
 
     private final AtomicBoolean handleOnce = new AtomicBoolean(true);
@@ -31,32 +31,32 @@ public class ClazzBuildingHandler implements IAnnotationHandler {
     @Override
     public void handleAnnotation(TypeElement annotation, RoundEnvironment roundEnvironment, ProcessingEnvironment processingEnvironment) {
         LOG.info("Building class-builder source files...");
-        ClazzBuilder.fetchAllClazzes().stream().peek(this::addBuildMethodTo).forEach(c -> writeClazzToSourceFile(c, processingEnvironment));
+        ClazzBuilder.fetchAllClazzes().stream()
+                .peek(this::addBuildMethodTo)
+                .forEach(c -> writeClazzToSourceFile(c, processingEnvironment));
         LOG.info("Successfully built builder classes!");
     }
 
     /**
      * Adds the building method to the given clazz object.
-     *
-     * @param clazz The clazz
      */
     private void addBuildMethodTo(final Clazz clazz) {
         final Method method = clazz.fetchMethod(BeelderConstants.BUILD_METHOD_NAME);
-        final Variable builds = clazz.getVariables().stream().filter(var -> BeelderConstants.BUILDABLE_OBJECT_NAME.equals(var.getKey())).findFirst().orElse(null);
+        final Variable builds = clazz.getVariables().stream()
+                .filter(var -> BeelderConstants.BUILDABLE_OBJECT_NAME.equals(var.getKey()))
+                .findFirst().orElse(null);
+
         if(Objects.isNull(builds)) {
             return;
         }
 
         method.setReturnType(builds.getType());
         method.addModifier(Modifier.PUBLIC);
-        method.addReturnStatement("this.".concat(builds.getKey()));
+        method.addReturnStatement("this." + builds.getKey());
     }
 
     /**
      * Tries to write the string representation of the given class to a new source file.
-     *
-     * @param clazz The clazz
-     * @param procEnv The processing environment to add the new source file to
      */
     private void writeClazzToSourceFile(final Clazz clazz, final ProcessingEnvironment procEnv) {
         final JavaFileObject builderClass = createSourceFile(clazz.getKey(), procEnv);

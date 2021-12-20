@@ -13,7 +13,6 @@ public abstract class Type {
 
     private String key;
 
-
     /**
      * Creates a new type by the given name.
      *

@@ -13,7 +13,6 @@ public final class StatementBuilder {
         // Util class for creating statements, mostly used in Methods
     }
 
-
     /**
      * Creates a new assignment of the form "source.assign = to;".
      *
@@ -30,6 +29,17 @@ public final class StatementBuilder {
      */
     public static String createMethodCall(final String source, final String method, final String... params) {
         return String.format("%s.%s(%s);", source, method, String.join(", ", params));
+    }
+
+    /**
+     * Creates a new assignment of the form "source.assign = methodSource.methodName(methodParm0, ...);".
+     *
+     * @return Assignment as string
+     */
+    public static String createAssignToMethodCall(final String source, final String assign, final String methodSource,
+                                                  final String methodName, final String... methodParams) {
+        return createAssignment(source, assign, createMethodCall(methodSource, methodName, methodParams))
+                .replace(";;", ";");
     }
 
     /**
@@ -91,7 +101,8 @@ public final class StatementBuilder {
             if(!this.catchClauses.isEmpty()) {
                 for(final String catches:catchClauses.keySet()) {
                     tryString.append(" catch (").append(catches).append(" exc) {\n");
-                    this.catchClauses.get(catches).forEach(l -> indent(tryString, depth + 1).append(l).append('\n'));
+                    this.catchClauses.get(catches).forEach(l -> indent(tryString, depth + 1)
+                            .append(l).append('\n'));
                     indent(tryString, depth).append("}");
                 }
             }

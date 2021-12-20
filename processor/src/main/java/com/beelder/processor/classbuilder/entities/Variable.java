@@ -19,8 +19,6 @@ public class Variable extends Type {
      */
     private final String value;
 
-
-
     public Variable(String type, String key) {
         super(key);
 
@@ -34,7 +32,6 @@ public class Variable extends Type {
         this.type = type;
         this.value = value;
     }
-
 
     @Override
     public String build(final int depth) {

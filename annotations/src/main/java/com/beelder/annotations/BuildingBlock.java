@@ -7,7 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * An annotation for marking elements of a class to be included into the generated builder.
- * Allowed elements are fields and methods.
+ * Allowed elements are fields and methods. The annotated element should reside in a class
+ * marked with {@link Buildable}!
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.SOURCE)

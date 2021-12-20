@@ -4,10 +4,13 @@ import com.beelder.processor.utils.BeelderUtils;
 
 import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,18 +25,19 @@ public class Clazz extends Type {
      * Maps method names to {@link Method} objects residing in this class.
      */
     private final Map<String, Method> methods = new HashMap<>();
+    /**
+     * Contains all constructors of this class as {@link Method} objects.
+     */
+    private final List<Method> constructors = new ArrayList<>();
 
     /**
      * This classes package.
      */
     private String packageIdent;
 
-
-
     public Clazz(String key) {
         super(key);
     }
-
 
     @Override
     public String build(final int depth) {
@@ -41,12 +45,18 @@ public class Clazz extends Type {
         createPackageLine(clazzString, depth);
         clazzString.append("\n");
         createClazzHeader(clazzString, depth);
-        variables.forEach(var -> indent(clazzString.append(var.build(depth + 1)).append(";\n"), depth));
-        clazzString.append("\n\n");
-        methods.values().forEach(method -> indent(clazzString.append(method.build(depth + 1)).append("\n\n"), depth));
+        buildCollection(this.variables, clazzString, depth, ";\n");
+        clazzString.append("\n");
+        buildCollection(this.constructors, clazzString, depth, "\n");
+        clazzString.append("\n");
+        buildCollection(this.methods.values(), clazzString, depth, "\n\n");
 
         clazzString.append("}");
         return clazzString.toString();
+    }
+
+    private void buildCollection(final Collection<? extends Type> col, final StringBuilder sb, final int depth, final String suffix) {
+        col.forEach(type -> indent(sb.append(type.build(depth + 1)).append(suffix), depth));
     }
 
     private void createPackageLine(final StringBuilder sb, final int depth) {
@@ -58,6 +68,10 @@ public class Clazz extends Type {
         getModifiers().stream().map(BeelderUtils::modififerToLowercase).forEach(m -> sb.append(m).append(" "));
 
         sb.append("class ").append(getKey()).append(" {\n\n");
+    }
+
+    public void addConstructor(final Method method) {
+        this.constructors.add(method);
     }
 
     public boolean containsMethod(final String key) {

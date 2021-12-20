@@ -1,11 +1,14 @@
 package com.beelder.processor.utils;
 
+import com.beelder.annotations.Buildable;
 import com.beelder.processor.constants.BeelderConstants;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic;
+import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -60,5 +63,22 @@ public final class BeelderUtils {
      */
     public static void messageElementAnnotatedWith(final ProcessingEnvironment procEnv, final Diagnostic.Kind msgKind, final String annotName, final String suffix, final Element element) {
         procEnv.getMessager().printMessage(msgKind, String.format(BeelderConstants.MESSAGE_IN_PROC_ENV_BASE, element.getKind().name().toLowerCase(Locale.ROOT), element, annotName, suffix), element);
+    }
+
+    /**
+     * Checks the given elements class for the given annotation, if the element is
+     * not a class, checks the enclosing element.
+     *
+     * @param annot The annotation class to look for
+     * @param element The source element
+     * @param <T> The annotation type
+     * @return The instance of the annotation if found, null otherwise
+     */
+    public static <T extends Annotation> T fetchAnnotationForEnclosing(final Class<T> annot, final Element element) {
+        if(ElementKind.CLASS.equals(element.getKind())) {
+            return element.getAnnotation(annot);
+        }
+
+        return element.getEnclosingElement().getAnnotation(annot);
     }
 }

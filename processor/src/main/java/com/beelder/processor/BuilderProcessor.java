@@ -24,7 +24,7 @@ import java.util.Set;
 @SupportedAnnotationTypes({Buildable.QUALIFIED_NAME, BuildingBlock.QUALIFIED_NAME})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
-public class BuilderProcessor extends AbstractProcessor {
+public final class BuilderProcessor extends AbstractProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(BuilderProcessor.class);
 
     private final List<IAnnotationHandler> handlers = new ArrayList<>();
@@ -39,7 +39,9 @@ public class BuilderProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         LOG.info("Starting annotation processing...");
         for(final IAnnotationHandler handler:handlers) {
-            annotations.stream().filter(handler::canHandle).forEach(annot -> handler.handleAnnotation(annot, roundEnv, this.processingEnv));
+            annotations.stream()
+                    .filter(handler::canHandle)
+                    .forEach(annot -> handler.handleAnnotation(annot, roundEnv, this.processingEnv));
         }
 
         LOG.info("Successfully processed annotations!");

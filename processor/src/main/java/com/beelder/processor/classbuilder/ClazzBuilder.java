@@ -10,20 +10,17 @@ import java.util.stream.Collectors;
 /**
  * Singleton class to store all current {@link Clazz} instance, used for later building.
  */
-public class ClazzBuilder {
-    private static ClazzBuilder instance = new ClazzBuilder();
-
-
+public final class ClazzBuilder {
+    private static final ClazzBuilder instance = new ClazzBuilder();
 
     private ClazzBuilder() {
         // Singleton
     }
 
-
     /**
      * Maps class names to {@link Clazz} objects.
      */
-    private Map<String, Clazz> cache = new HashMap<>();
+    private final Map<String, Clazz> cache = new HashMap<>();
 
     /**
      * Returns a stored class for the given name, creates it if

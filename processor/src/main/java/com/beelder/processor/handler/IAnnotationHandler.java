@@ -23,5 +23,6 @@ public interface IAnnotationHandler {
      * @param roundEnvironment The current round environment
      * @param processingEnvironment The current processing environment
      */
-    void handleAnnotation(final TypeElement annotation, final RoundEnvironment roundEnvironment, final ProcessingEnvironment processingEnvironment);
+    void handleAnnotation(final TypeElement annotation, final RoundEnvironment roundEnvironment,
+                          final ProcessingEnvironment processingEnvironment);
 }

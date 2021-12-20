@@ -1,10 +1,12 @@
 package com.beelder.processor.classbuilder.entities;
 
 import com.beelder.processor.utils.BeelderUtils;
+import com.beelder.processor.utils.ElementUtils;
 import com.beelder.processor.utils.StringBuilderUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
+import javax.lang.model.element.ExecutableElement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +54,8 @@ public class Method extends Type {
         StringBuilderUtils.indent(sb, depth);
         getModifiers().stream().map(BeelderUtils::modififerToLowercase).forEach(m -> sb.append(m).append(" "));
 
-        sb.append(this.returnType).append(" ").append(getKey()).append("(").append(parameters.stream().map(Variable::build).collect(Collectors.joining(", "))).append(") {\n");
+        sb.append(this.returnType).append(" ").append(getKey()).append("(").append(
+                parameters.stream().map(Variable::build).collect(Collectors.joining(", "))).append(") {\n");
     }
 
     /**
