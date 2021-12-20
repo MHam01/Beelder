@@ -62,7 +62,8 @@ public final class BeelderUtils {
      * @param element The element source
      */
     public static void messageElementAnnotatedWith(final ProcessingEnvironment procEnv, final Diagnostic.Kind msgKind, final String annotName, final String suffix, final Element element) {
-        procEnv.getMessager().printMessage(msgKind, String.format(BeelderConstants.MESSAGE_IN_PROC_ENV_BASE, element.getKind().name().toLowerCase(Locale.ROOT), element, annotName, suffix), element);
+        procEnv.getMessager().printMessage(
+                msgKind, String.format(BeelderConstants.MESSAGE_IN_PROC_ENV_BASE, element.getKind().name().toLowerCase(Locale.ROOT), element, annotName, suffix), element);
     }
 
     /**

@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * An annotation for marking a class to generate a designated builder class from.
  * The builder will be put into the same package, the class resides in.
  * <p>
- *     See also {@link BuildingBlock}
+ *     See also {@link BuildingBlock}, {@link Excluded}
  * </p>
  */
 @Target(ElementType.TYPE)

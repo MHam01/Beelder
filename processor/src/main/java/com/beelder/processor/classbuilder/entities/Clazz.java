@@ -47,8 +47,7 @@ public class Clazz extends Type {
         createClazzHeader(clazzString, depth);
         buildCollection(this.variables, clazzString, depth, ";\n");
         clazzString.append("\n");
-        buildCollection(this.constructors, clazzString, depth, "\n");
-        clazzString.append("\n");
+        buildCollection(this.constructors, clazzString, depth, "\n\n");
         buildCollection(this.methods.values(), clazzString, depth, "\n\n");
 
         clazzString.append("}");

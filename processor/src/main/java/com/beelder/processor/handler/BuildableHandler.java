@@ -1,6 +1,7 @@
 package com.beelder.processor.handler;
 
 import com.beelder.annotations.Buildable;
+import com.beelder.annotations.Excluded;
 import com.beelder.processor.classbuilder.ClazzBuilder;
 import com.beelder.processor.classbuilder.entities.Clazz;
 import com.beelder.processor.classbuilder.entities.Method;
@@ -24,6 +25,7 @@ import javax.tools.Diagnostic;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static javax.lang.model.element.Modifier.*;
@@ -33,7 +35,7 @@ public final class BuildableHandler implements IAnnotationHandler {
 
     @Override
     public boolean canHandle(TypeElement annotation) {
-        return annotation.getQualifiedName().contentEquals(Buildable.class.getName());
+        return annotation.getQualifiedName().contentEquals(Buildable.QUALIFIED_NAME);
     }
 
     @Override
@@ -42,7 +44,6 @@ public final class BuildableHandler implements IAnnotationHandler {
         LOG.info("Handling annotation {}...", annotation.getSimpleName());
         roundEnvironment.getElementsAnnotatedWith(annotation).forEach(e -> {
             checkClass(e, processingEnvironment);
-            checkConstructors(e, processingEnvironment);
 
             final Clazz clazz = ClazzBuilder.getRootForName(ElementUtils.getBuilderNameFor(e));
             final String classNameQual = ElementUtils.getElementNameQualified(e);
@@ -66,28 +67,16 @@ public final class BuildableHandler implements IAnnotationHandler {
     }
 
     /**
-     * Checks if a given class element contains a public constructor, as this would be bad practice
-     * in a class for which a builder should be generated.
-     */
-    private void checkConstructors(final Element clazz, final ProcessingEnvironment procEnv) {
-        clazz.getEnclosedElements().stream().filter(e -> ElementKind.CONSTRUCTOR.equals(e.getKind())).forEach(e -> {
-            if(e.getModifiers().contains(PUBLIC)) {
-                LOG.debug("Class {} contains one or more non-package-private constructors, sending compiler warning!", clazz.getSimpleName());
-                BeelderUtils.messageElementAnnotatedWith(
-                        procEnv, Diagnostic.Kind.WARNING, Buildable.SIMPLE_NAME, "but contains one or more public constructors", e);
-            }
-        });
-    }
-
-    /**
      * Adds all constructors of the current class element to the respective clazz object, depending on if
      * reflection is enabled for the current element
      */
     private void addConstructorsToClass(final Clazz clazz, final Element classElement, final ProcessingEnvironment procEnv) {
         final String sourceNameQual = ElementUtils.getElementNameQualified(classElement);
 
-        final Map<Boolean, List<Element>> groupedByPublic = classElement.getEnclosedElements().stream().filter(BuildableHandler::isConstructor)
-                        .collect(Collectors.partitioningBy(con -> BeelderUtils.containsNone(con.getModifiers(), PRIVATE, PROTECTED)));
+        final Map<Boolean, List<Element>> groupedByPublic = classElement.getEnclosedElements().stream()
+                .filter(BuildableHandler::isConstructor)
+                .filter(con -> Objects.isNull(con.getAnnotation(Excluded.class)))
+                .collect(Collectors.partitioningBy(con -> BeelderUtils.containsNone(con.getModifiers(), PRIVATE, PROTECTED)));
 
         final boolean reflectionEnabled = BeelderUtils.fetchAnnotationForEnclosing(Buildable.class, classElement).writeWithReflection();
         if(groupedByPublic.get(true).isEmpty() && !reflectionEnabled) {
@@ -97,14 +86,14 @@ public final class BuildableHandler implements IAnnotationHandler {
             return;
         }
 
-        if(!groupedByPublic.get(true).isEmpty()) {
+        if(groupedByPublic.get(true).stream().anyMatch(con -> con.getModifiers().contains(PUBLIC))) {
             LOG.debug("Class {} contains one or more non-package-private constructors, sending compiler warning!", classElement);
             BeelderUtils.messageElementAnnotatedWith(
                     procEnv, Diagnostic.Kind.WARNING, Buildable.SIMPLE_NAME, "but contains one or more public constructors", classElement);
             LOG.debug("Adding public constructors to generated builder {}...", clazz.getKey());
-
-            groupedByPublic.get(true).forEach(con -> addPublicConstructorToClazz(clazz, sourceNameQual, con));
         }
+
+        groupedByPublic.get(true).forEach(con -> addPublicConstructorToClazz(clazz, sourceNameQual, con));
 
         if(reflectionEnabled) {
             LOG.debug("Adding private constructors to generated builder {}...", clazz.getKey());
