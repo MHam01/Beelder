@@ -29,7 +29,6 @@ public class Clazz extends Type {
      * Contains all constructors of this class as {@link Method} objects.
      */
     private final List<Method> constructors = new ArrayList<>();
-
     /**
      * This classes package.
      */
@@ -97,10 +96,25 @@ public class Clazz extends Type {
      * @param modifiers List of all modifiers
      */
     public void addVariable(final String type, final String key, @Nullable final String value, final Modifier... modifiers) {
+        if(this.variables.stream().anyMatch(var -> key.equals(var.getKey()))) {
+            return;
+        }
+
         final Variable var = new Variable(type, key, value);
-        Arrays.stream(modifiers).forEach(var::addModifier);
+        var.addModifiers(modifiers);
 
         this.variables.add(var);
+    }
+
+    /**
+     * Adds a new {@link Variable} to this class.
+     */
+    public void addVariable(final Variable variable) {
+        if(this.variables.stream().anyMatch(var -> variable.getKey().equals(var.getKey()))) {
+            return;
+        }
+
+        this.variables.add(variable);
     }
 
     /**

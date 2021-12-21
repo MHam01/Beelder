@@ -2,6 +2,7 @@ package com.beelder.processor.classbuilder.entities;
 
 import javax.lang.model.element.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,6 +45,15 @@ public abstract class Type {
         if(!this.modifiers.contains(modifier)) {
             this.modifiers.add(modifier);
         }
+    }
+
+    /**
+     * Adds a list of new modifiers to this type if they are not yet contained.
+     *
+     * @param modifiers Modifiers to be added
+     */
+    public final void addModifiers(final Modifier... modifiers) {
+        Arrays.stream(modifiers).filter(m -> !this.modifiers.contains(m)).forEach(this.modifiers::add);
     }
 
     /**

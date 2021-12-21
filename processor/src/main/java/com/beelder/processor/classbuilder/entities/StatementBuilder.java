@@ -43,6 +43,19 @@ public final class StatementBuilder {
     }
 
     /**
+     * Creates a new line thrown an exception of the form "throw new exception(message);"
+     *
+     * @return Throw as string
+     */
+    public static String createExceptionThrowing(final Class<? extends Exception> exception, final String message) {
+        return String.format("throw new %s(\"%s\");", exception.getName(), message);
+    }
+
+    public static IfBlock createIfBlock(final String condition) {
+        return new IfBlock(condition);
+    }
+
+    /**
      * Creates a new try block from the given lines.
      *
      * @param lines Initial lines
@@ -108,6 +121,42 @@ public final class StatementBuilder {
             }
 
             return tryString.toString();
+        }
+    }
+
+    public static class IfBlock extends Type {
+        private final String condition;
+        private final List<String> body = new ArrayList<>();
+        private final List<String> elseBody = new ArrayList<>();
+
+        private IfBlock(final String condition) {
+            super("IF");
+
+            this.condition = condition;
+        }
+
+        public void addLine(final String line) {
+            this.body.add(line);
+        }
+
+        public void addLineToElse(final String line) {
+            this.elseBody.add(line);
+        }
+
+        @Override
+        public String build(int depth) {
+            final StringBuilder ifString = new StringBuilder("if (");
+            ifString.append(this.condition).append(") {\n");
+            this.body.forEach(l -> indent(ifString, depth + 1).append(l).append('\n'));
+            indent(ifString, depth).append('}');
+
+            if(!this.elseBody.isEmpty()) {
+                ifString.append(" else {");
+                this.elseBody.forEach(l -> indent(ifString, depth + 1).append(l).append('\n'));
+                indent(ifString, depth).append('}');
+            }
+
+            return ifString.toString();
         }
     }
 }

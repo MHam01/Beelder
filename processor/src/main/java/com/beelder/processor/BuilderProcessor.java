@@ -1,11 +1,13 @@
 package com.beelder.processor;
 
 import com.beelder.annotations.Buildable;
-import com.beelder.annotations.BuildingBlock;
+import com.beelder.annotations.buildingblock.BuildingBlock;
+import com.beelder.annotations.buildingblock.NonNull;
 import com.beelder.processor.handler.BuildableHandler;
 import com.beelder.processor.handler.BuildingBlockHandler;
 import com.beelder.processor.handler.ClazzBuildingHandler;
 import com.beelder.processor.handler.IAnnotationHandler;
+import com.beelder.processor.handler.NonNullHandler;
 import com.google.auto.service.AutoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@SupportedAnnotationTypes({Buildable.QUALIFIED_NAME, BuildingBlock.QUALIFIED_NAME})
+@SupportedAnnotationTypes({Buildable.QUALIFIED_NAME, BuildingBlock.QUALIFIED_NAME, NonNull.QUALIFIED_NAME})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
 public final class BuilderProcessor extends AbstractProcessor {
@@ -32,6 +34,7 @@ public final class BuilderProcessor extends AbstractProcessor {
     {
         handlers.add(new BuildableHandler());
         handlers.add(new BuildingBlockHandler());
+        handlers.add(new NonNullHandler());
         handlers.add(new ClazzBuildingHandler());
     }
 

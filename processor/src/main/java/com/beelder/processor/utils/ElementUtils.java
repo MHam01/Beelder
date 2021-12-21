@@ -1,6 +1,7 @@
 package com.beelder.processor.utils;
 
 import com.beelder.processor.constants.BeelderConstants;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -59,5 +60,15 @@ public final class ElementUtils {
         } catch (ClassCastException e) {
             return null;
         }
+    }
+
+    /**
+     * Generates the setter method name for a given element, e.g.
+     * getSetterMethod(field) = "setField".
+     *
+     * @return setter method as a string
+     */
+    public static String setterMethodFrom(final Element element) {
+        return "set" + StringUtils.capitalize(ElementUtils.getElementNameSimple(element));
     }
 }

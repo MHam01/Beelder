@@ -2,6 +2,7 @@ package com.beelder.processor.handler;
 
 import com.beelder.annotations.Buildable;
 import com.beelder.annotations.Excluded;
+import com.beelder.annotations.buildingblock.NonNull;
 import com.beelder.processor.classbuilder.ClazzBuilder;
 import com.beelder.processor.classbuilder.entities.Clazz;
 import com.beelder.processor.classbuilder.entities.Method;

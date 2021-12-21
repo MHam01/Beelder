@@ -67,6 +67,15 @@ public class Method extends Type {
     }
 
     /**
+     * Adds a new line to the top of this method.
+     *
+     * @param line The line
+     */
+    public void prependLine(final String line) {
+        this.content.add(0, line);
+    }
+
+    /**
      * Adds a new line to the body of this method.
      *
      * @param line The line

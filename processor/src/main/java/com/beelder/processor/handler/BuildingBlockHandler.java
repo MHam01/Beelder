@@ -1,7 +1,7 @@
 package com.beelder.processor.handler;
 
 import com.beelder.annotations.Buildable;
-import com.beelder.annotations.BuildingBlock;
+import com.beelder.annotations.buildingblock.BuildingBlock;
 import com.beelder.processor.classbuilder.ClazzBuilder;
 import com.beelder.processor.classbuilder.entities.Clazz;
 import com.beelder.processor.classbuilder.entities.Method;
@@ -97,7 +97,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
             LOG.debug("Field is accessible, adding new method to builder root!");
             addPublicVarAssign(ClazzBuilder.getRootForName(enclosingClazz), field);
         } else {
-            final Element setterMethod = lookForSetterMethod(field.getEnclosingElement(), getSetterMethod(field));
+            final Element setterMethod = lookForSetterMethod(field.getEnclosingElement(), ElementUtils.setterMethodFrom(field));
 
             if(Objects.isNull(setterMethod) &&
                     BeelderUtils.fetchAnnotationForEnclosing(Buildable.class, field).writeWithReflection()) {
@@ -131,7 +131,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
         final Clazz clazz = ClazzBuilder.getRootForName(builderName);
         final Variable objectVar = clazz.getVariableFor(BeelderConstants.BUILDABLE_OBJECT_NAME);
 
-        if(clazz.containsMethod(getSetterMethod(field))) {
+        if(clazz.containsMethod(ElementUtils.setterMethodFrom(field))) {
             return;
         }
 
@@ -144,7 +144,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
         theTry.addLine("field.setAccessible(false);");
         theTry.addLineToCatchClause("", "NoSuchFieldException | IllegalAccessException");
 
-        final Method method = clazz.fetchMethod(getSetterMethod(field));
+        final Method method = clazz.fetchMethod(ElementUtils.setterMethodFrom(field));
         final Variable param = new Variable(ElementUtils.getElementType(field), BeelderConstants.SETTER_METHOD_PARAM_NAME);
         method.setReturnType(builderName);
         method.addParameter(param);
@@ -216,7 +216,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
      */
     private void addPublicVarAssign(final Clazz clazz, final Element element) {
         final String fieldName = ElementUtils.getElementNameSimple(element);
-        final String methodName = getSetterMethod(element);
+        final String methodName = ElementUtils.setterMethodFrom(element);
 
         if(clazz.containsMethod(methodName)) {
             return;
@@ -234,15 +234,5 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
         return element.getEnclosedElements().stream()
                 .filter(e -> e.getSimpleName().contentEquals(methodName))
                 .findFirst().orElse(null);
-    }
-
-    /**
-     * Generates the setter method name for a given element, e.g.
-     * getSetterMethod(field) = "setField".
-     *
-     * @return setter method as a string
-     */
-    private String getSetterMethod(final Element element) {
-        return "set" + StringUtils.capitalize(ElementUtils.getElementNameSimple(element));
     }
 }

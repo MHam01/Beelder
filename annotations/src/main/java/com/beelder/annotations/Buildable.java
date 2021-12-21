@@ -1,5 +1,7 @@
 package com.beelder.annotations;
 
+import com.beelder.annotations.buildingblock.BuildingBlock;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

@@ -1,9 +1,17 @@
 package com.beelder.processor.constants;
 
+import com.beelder.annotations.Buildable;
+import com.beelder.annotations.buildingblock.BuildingBlock;
+
+import java.util.Set;
+
 public final class BeelderConstants {
     private BeelderConstants() {
         // Static class
     }
+
+    public static Set<String> primiteTypes =
+            Set.of("byte", "short", "int", "char", "double", "float", "boolean");
 
     /**
      * Suffix for generated builder classes.
