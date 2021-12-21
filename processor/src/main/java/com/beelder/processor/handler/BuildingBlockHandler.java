@@ -202,7 +202,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
         final Method method = clazz.fetchMethod(methodName);
         method.setReturnType(clazz.getKey());
         methodEl.getParameters().stream().map(Variable::from).forEach(var -> {
-            var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME);
+            var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME + method.parameterNum());
             method.addParameter(var);
         });
 
