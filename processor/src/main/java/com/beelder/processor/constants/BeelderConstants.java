@@ -10,8 +10,8 @@ public final class BeelderConstants {
         // Static class
     }
 
-    public static Set<String> primiteTypes =
-            Set.of("byte", "short", "int", "char", "double", "float", "boolean");
+    public static final Set<String> PRIMITIVE_TYPES =
+            Set.of("byte", "short", "int", "long", "char", "double", "float", "boolean");
 
     /**
      * Suffix for generated builder classes.

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
@@ -50,9 +51,12 @@ public final class NonNullHandler implements IAnnotationHandler {
 
     private void handleAnnotatedElement(final Element element) {
         final Clazz clazz = ClazzBuilder.getRootForName(ElementUtils.getBuilderNameFor(element));
-        final Method theSetter = clazz.fetchMethod(ElementUtils.setterMethodFrom(element));
+        final Method theSetter =
+                ElementKind.FIELD.equals(element.getKind()) ?
+                        clazz.fetchMethod(ElementUtils.setterMethodFrom(element)) :
+                        clazz.fetchMethod(ElementUtils.getElementNameSimple(element));
         final String condition = theSetter.getParameters().stream()
-                .filter(var -> !BeelderConstants.primiteTypes.contains(var.getType()))
+                .filter(var -> !BeelderConstants.PRIMITIVE_TYPES.contains(var.getType()))
                 .map(Variable::getKey)
                 .map(k -> "java.util.Objects.isNull(" + k + ")")
                 .collect(Collectors.joining(" || "));
@@ -94,7 +98,7 @@ public final class NonNullHandler implements IAnnotationHandler {
     }
 
     private void handlePrintTo(final StatementBuilder.IfBlock theIf, final String stream, final String message) {
-        theIf.addLine(String.format("System.%s.println(%s);", stream, message));
+        theIf.addLine(String.format("System.%s.println(\"%s\");", stream, message));
         theIf.addLine("return this;");
     }
 
@@ -105,5 +109,6 @@ public final class NonNullHandler implements IAnnotationHandler {
 
         builder.addVariable(logVar);
         theIf.addLine(String.format("LOG.error(\"%s\");", message));
+        theIf.addLine("return this;");
     }
 }
