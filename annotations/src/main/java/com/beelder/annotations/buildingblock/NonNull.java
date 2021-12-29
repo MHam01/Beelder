@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Used to add a null-check to the annotated field/method (has to be annotated with
  * {@link BuildingBlock}) in the generated builder!
  */
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
 public @interface NonNull {
     String QUALIFIED_NAME = "com.beelder.annotations.buildingblock.NonNull";
