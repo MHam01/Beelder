@@ -2,6 +2,7 @@ package com.beelder.annotations;
 
 import com.beelder.annotations.buildingblock.BuildingBlock;
 
+import javax.lang.model.element.Modifier;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,4 +27,9 @@ public @interface Buildable {
      * use this option with care!
      */
     boolean writeWithReflection() default false;
+
+    /**
+     * Defines the access-modifiers for the generated builder class.
+     */
+    BuilderAccess builderAccess() default BuilderAccess.PUBLIC;
 }

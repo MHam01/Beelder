@@ -10,7 +10,6 @@ import com.beelder.processor.classbuilder.entities.Variable;
 import com.beelder.processor.constants.BeelderConstants;
 import com.beelder.processor.utils.BeelderUtils;
 import com.beelder.processor.utils.ElementUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +28,7 @@ import java.util.Set;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PROTECTED;
+import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
 public final class BuildingBlockHandler implements IAnnotationHandler {
@@ -146,6 +146,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
 
         final Method method = clazz.fetchMethod(ElementUtils.setterMethodFrom(field));
         final Variable param = new Variable(ElementUtils.getElementType(field), BeelderConstants.SETTER_METHOD_PARAM_NAME);
+        method.addModifier(PUBLIC);
         method.setReturnType(builderName);
         method.addParameter(param);
         method.addLine(theTry.build(2));
@@ -207,6 +208,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
         });
 
         final String[] parametersAsStr = method.getParameters().stream().map(Variable::getKey).toArray(String[]::new);
+        method.addModifier(PUBLIC);
         method.addLine(StatementBuilder.createMethodCall("this." + BeelderConstants.BUILDABLE_OBJECT_NAME, methodName, parametersAsStr));
         method.addReturnStatement("this");
     }
@@ -224,6 +226,7 @@ public final class BuildingBlockHandler implements IAnnotationHandler {
 
         final Method method = clazz.fetchMethod(methodName);
         final Variable param = new Variable(ElementUtils.getElementType(element), BeelderConstants.SETTER_METHOD_PARAM_NAME);
+        method.addModifier(PUBLIC);
         method.setReturnType(clazz.getKey());
         method.addParameter(param);
         method.addLine(StatementBuilder.createAssignment("this." + BeelderConstants.BUILDABLE_OBJECT_NAME, fieldName, param.getKey()));

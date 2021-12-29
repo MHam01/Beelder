@@ -2,7 +2,6 @@ package com.beelder.processor.handler;
 
 import com.beelder.annotations.Buildable;
 import com.beelder.annotations.Excluded;
-import com.beelder.annotations.buildingblock.NonNull;
 import com.beelder.processor.classbuilder.ClazzBuilder;
 import com.beelder.processor.classbuilder.entities.Clazz;
 import com.beelder.processor.classbuilder.entities.Method;
@@ -22,14 +21,15 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static javax.lang.model.element.Modifier.*;
+import static javax.lang.model.element.Modifier.ABSTRACT;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.PROTECTED;
+import static javax.lang.model.element.Modifier.PUBLIC;
 
 public final class BuildableHandler implements IAnnotationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(BuildableHandler.class);
@@ -46,14 +46,22 @@ public final class BuildableHandler implements IAnnotationHandler {
         roundEnvironment.getElementsAnnotatedWith(annotation).forEach(e -> {
             checkClass(e, processingEnvironment);
 
-            final Clazz clazz = ClazzBuilder.getRootForName(ElementUtils.getBuilderNameFor(e));
-            final String classNameQual = ElementUtils.getElementNameQualified(e);
-            clazz.setPackageIdent(StringUtils.substringBeforeLast(classNameQual, "."));
-            clazz.addVariable(classNameQual, BeelderConstants.BUILDABLE_OBJECT_NAME, null, PRIVATE);
-
+            final Clazz clazz = createClazzFor(e);
             addConstructorsToClass(clazz, e, processingEnvironment);
         });
         LOG.info("Successfully handled annotation {}!", annotation.getSimpleName());
+    }
+
+    private Clazz createClazzFor(final Element clazz) {
+        final Clazz clazzObj = ClazzBuilder.getRootForName(ElementUtils.getBuilderNameFor(clazz));
+        final String classNameQual = ElementUtils.getElementNameQualified(clazz);
+        clazzObj.setPackageIdent(StringUtils.substringBeforeLast(classNameQual, "."));
+        clazzObj.addVariable(classNameQual, BeelderConstants.BUILDABLE_OBJECT_NAME, null, PRIVATE);
+
+        final Buildable buildableAnnot = BeelderUtils.fetchAnnotationForEnclosing(Buildable.class, clazz);
+        clazzObj.addModifier(buildableAnnot.builderAccess().getModifier());
+
+        return clazzObj;
     }
 
     /**
@@ -141,6 +149,7 @@ public final class BuildableHandler implements IAnnotationHandler {
                 .peek(var -> var.setKey(BeelderConstants.SETTER_METHOD_PARAM_NAME + theMethod.parameterNum()))
                 .forEach(theMethod::addParameter);
         theMethod.setReturnType(clazz.getKey());
+        theMethod.addModifier(PUBLIC);
 
         return theMethod;
     }

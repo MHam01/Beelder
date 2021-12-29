@@ -1,2 +1,8 @@
 group project.group
 version project.version
+
+dependencies {
+    testCompile project(':processor')
+    testImplementation 'com.google.testing.compile:compile-testing:0.19'
+    testImplementation 'org.slf4j:slf4j-api:1.7.25'
+}

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class Type {
     /**
@@ -42,7 +43,7 @@ public abstract class Type {
      * @param modifier Modifier to be added
      */
     public final void addModifier(final Modifier modifier) {
-        if(!this.modifiers.contains(modifier)) {
+        if(Objects.nonNull(modifier) && !this.modifiers.contains(modifier)) {
             this.modifiers.add(modifier);
         }
     }
